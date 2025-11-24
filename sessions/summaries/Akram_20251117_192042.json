@@ -1,0 +1,26 @@
+{
+  "timestamp_iso": "2025-11-17T19:20:42.937470",
+  "session_label": "Akram",
+  "task": "fixation_dot",
+  "raw_csv": "sessions/raw/Akram_20251117_192042.csv",
+  "configured_duration_s": 25.0,
+  "duration_s": 24.933157920837402,
+  "path_length_deg": 178.82870373802595,
+  "mean_angular_speed_deg_per_s": 7.172072704536952,
+  "spike_count": 1,
+  "percent_time_moving": 0.005376344086021506,
+  "blink_rate_per_s": 0.0,
+  "gaze_dispersion": null,
+  "saccade_count": 0,
+  "fixation_count": 1,
+  "mean_saccade_duration_s": 0.0,
+  "median_saccade_duration_s": 0.0,
+  "mean_saccade_peak_velocity": 0.0,
+  "mean_saccade_amplitude": 0.0,
+  "mean_fixation_duration_s": 24.933157920837402,
+  "saccade_latencies_s": [],
+  "intrusive_saccade_count": 0,
+  "intrusive_counts_per_interval": [
+    0
+  ]
+}

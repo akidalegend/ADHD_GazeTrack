@@ -1,4 +1,5 @@
-dlib==19.24.4
-numpy==1.26.4
-opencv-python==4.10.0.82
-setuptools==78.1.1
+# dlib removed from pip requirements — install separately (see notes below)
+# dlib removed from pip requirements — install separately (see notes below)
+numpy==2.2.6
+# opencv-python removed — install via conda (conda-forge)
+setuptools>=78.1.1

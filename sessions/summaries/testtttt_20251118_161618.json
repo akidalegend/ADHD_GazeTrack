@@ -1,0 +1,31 @@
+{
+  "timestamp_iso": "2025-11-18T16:16:18.982227",
+  "session_label": "testtttt",
+  "task": "fixation_dot",
+  "raw_csv": "sessions/raw/testtttt_20251118_161618.csv",
+  "configured_duration_s": 25.0,
+  "configured_trials": null,
+  "center_duration_s": null,
+  "gap_duration_s": null,
+  "target_duration_s": null,
+  "stimuli_directions": null,
+  "duration_s": 12.13612699508667,
+  "path_length_deg": 387.2714956626261,
+  "mean_angular_speed_deg_per_s": 30.770195255978486,
+  "spike_count": 12,
+  "percent_time_moving": 0.8651685393258427,
+  "blink_rate_per_s": 0.6591888288619577,
+  "gaze_dispersion": 0.06185762776233014,
+  "saccade_count": 0,
+  "fixation_count": 1,
+  "mean_saccade_duration_s": 0.0,
+  "median_saccade_duration_s": 0.0,
+  "mean_saccade_peak_velocity": 0.0,
+  "mean_saccade_amplitude": 0.0,
+  "mean_fixation_duration_s": 12.13612699508667,
+  "saccade_latencies_s": [],
+  "intrusive_saccade_count": 0,
+  "intrusive_counts_per_interval": [
+    0
+  ]
+}

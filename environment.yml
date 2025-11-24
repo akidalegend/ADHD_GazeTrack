@@ -1,9 +1,14 @@
 name: GazeTracking
 channels:
   - conda-forge
-  - anaconda
   - defaults
 dependencies:
-  - numpy == 1.16.1
-  - opencv == 3.4.*
-  - dlib == 19.17.*
+  - python=3.11
+  - numpy=2.2.6
+  - opencv=4.10           # install opencv via conda
+  - pip
+  - setuptools>=78.1.1
+  - pip:
+    # opencv-python removed to avoid pip/conda conflict
+# dlib intentionally omitted — install separately (see notes)
+# ...existing code...

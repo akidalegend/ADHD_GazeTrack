@@ -1,0 +1,103 @@
+{
+  "timestamp_iso": "2025-11-18T16:16:52.417281",
+  "session_label": "testt",
+  "task": "prosaccade",
+  "raw_csv": "sessions/raw/testt_prosaccade_20251118_161652.csv",
+  "configured_duration_s": null,
+  "configured_trials": 8,
+  "center_duration_s": 1.0,
+  "gap_duration_s": 0.2,
+  "target_duration_s": 1.5,
+  "stimuli_directions": [
+    {
+      "trial": 0,
+      "angle_deg": 39.62820184262687,
+      "x": 586,
+      "y": 285,
+      "fixation_x": 454,
+      "fixation_y": 152
+    },
+    {
+      "trial": 1,
+      "angle_deg": 252.23010706351997,
+      "x": 211,
+      "y": 383,
+      "fixation_x": 276,
+      "fixation_y": 583
+    },
+    {
+      "trial": 2,
+      "angle_deg": 323.6485349579886,
+      "x": 586,
+      "y": 112,
+      "fixation_x": 588,
+      "fixation_y": 237
+    },
+    {
+      "trial": 3,
+      "angle_deg": 34.44448535087888,
+      "x": 586,
+      "y": 265,
+      "fixation_x": 556,
+      "fixation_y": 147
+    },
+    {
+      "trial": 4,
+      "angle_deg": 225.11829661005473,
+      "x": 14,
+      "y": 230,
+      "fixation_x": 46,
+      "fixation_y": 379
+    },
+    {
+      "trial": 5,
+      "angle_deg": 64.46528775424422,
+      "x": 234,
+      "y": 327,
+      "fixation_x": 144,
+      "fixation_y": 138
+    },
+    {
+      "trial": 6,
+      "angle_deg": 188.7354461249859,
+      "x": 14,
+      "y": 363,
+      "fixation_x": 150,
+      "fixation_y": 395
+    },
+    {
+      "trial": 7,
+      "angle_deg": 97.36434126841657,
+      "x": 310,
+      "y": 586,
+      "fixation_x": 337,
+      "fixation_y": 431
+    }
+  ],
+  "duration_s": 23.420999765396118,
+  "path_length_deg": 44.01258726532664,
+  "mean_angular_speed_deg_per_s": 1.9128786403853142,
+  "spike_count": 1,
+  "percent_time_moving": 0.10285714285714286,
+  "blink_rate_per_s": 0.0,
+  "gaze_dispersion": 0.03437282568357621,
+  "saccade_count": 1,
+  "fixation_count": 1,
+  "mean_saccade_duration_s": 0.13159704208374023,
+  "median_saccade_duration_s": 0.13159704208374023,
+  "mean_saccade_peak_velocity": 0.8662589385905294,
+  "mean_saccade_amplitude": -0.11399711399711404,
+  "mean_fixation_duration_s": 23.154422998428345,
+  "saccade_latencies_s": [
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+  ],
+  "intrusive_saccade_count": 0,
+  "intrusive_counts_per_interval": []
+}

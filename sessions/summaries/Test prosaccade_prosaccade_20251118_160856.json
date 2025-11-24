@@ -1,0 +1,199 @@
+{
+  "timestamp_iso": "2025-11-18T16:08:56.350069",
+  "session_label": "Test prosaccade",
+  "task": "prosaccade",
+  "raw_csv": "sessions/raw/Test prosaccade_prosaccade_20251118_160856.csv",
+  "configured_duration_s": null,
+  "configured_trials": 24,
+  "center_duration_s": 1.0,
+  "gap_duration_s": 0.2,
+  "target_duration_s": 1.5,
+  "stimuli_directions": [
+    {
+      "trial": 0,
+      "angle_deg": 132.91662163530697,
+      "x": 157,
+      "y": 453
+    },
+    {
+      "trial": 1,
+      "angle_deg": 286.9926916565943,
+      "x": 361,
+      "y": 99
+    },
+    {
+      "trial": 2,
+      "angle_deg": 195.7925428208548,
+      "x": 97,
+      "y": 242
+    },
+    {
+      "trial": 3,
+      "angle_deg": 298.0722801087063,
+      "x": 398,
+      "y": 114
+    },
+    {
+      "trial": 4,
+      "angle_deg": 45.80432269586082,
+      "x": 446,
+      "y": 450
+    },
+    {
+      "trial": 5,
+      "angle_deg": 259.5018265380543,
+      "x": 261,
+      "y": 93
+    },
+    {
+      "trial": 6,
+      "angle_deg": 185.9746324864331,
+      "x": 91,
+      "y": 278
+    },
+    {
+      "trial": 7,
+      "angle_deg": 288.2736811803998,
+      "x": 365,
+      "y": 100
+    },
+    {
+      "trial": 8,
+      "angle_deg": 157.16314705956316,
+      "x": 106,
+      "y": 381
+    },
+    {
+      "trial": 9,
+      "angle_deg": 219.37037561347898,
+      "x": 137,
+      "y": 166
+    },
+    {
+      "trial": 10,
+      "angle_deg": 23.712605705264732,
+      "x": 492,
+      "y": 384
+    },
+    {
+      "trial": 11,
+      "angle_deg": 299.48240948090785,
+      "x": 403,
+      "y": 117
+    },
+    {
+      "trial": 12,
+      "angle_deg": 106.90290130988147,
+      "x": 238,
+      "y": 500
+    },
+    {
+      "trial": 13,
+      "angle_deg": 117.01281662424972,
+      "x": 204,
+      "y": 487
+    },
+    {
+      "trial": 14,
+      "angle_deg": 270.2796350291098,
+      "x": 301,
+      "y": 90
+    },
+    {
+      "trial": 15,
+      "angle_deg": 31.789591906724098,
+      "x": 478,
+      "y": 410
+    },
+    {
+      "trial": 16,
+      "angle_deg": 350.03030959690744,
+      "x": 506,
+      "y": 263
+    },
+    {
+      "trial": 17,
+      "angle_deg": 37.04829063201932,
+      "x": 467,
+      "y": 426
+    },
+    {
+      "trial": 18,
+      "angle_deg": 19.935395564581032,
+      "x": 497,
+      "y": 371
+    },
+    {
+      "trial": 19,
+      "angle_deg": 17.664948723534827,
+      "x": 500,
+      "y": 363
+    },
+    {
+      "trial": 20,
+      "angle_deg": 123.68267079647075,
+      "x": 183,
+      "y": 474
+    },
+    {
+      "trial": 21,
+      "angle_deg": 231.07619292099926,
+      "x": 168,
+      "y": 136
+    },
+    {
+      "trial": 22,
+      "angle_deg": 276.0925666814232,
+      "x": 322,
+      "y": 91
+    },
+    {
+      "trial": 23,
+      "angle_deg": 115.77620545282736,
+      "x": 208,
+      "y": 489
+    }
+  ],
+  "duration_s": 70.52819299697876,
+  "path_length_deg": 379.31514749536944,
+  "mean_angular_speed_deg_per_s": 5.376283464683593,
+  "spike_count": 10,
+  "percent_time_moving": 0.3092979127134725,
+  "blink_rate_per_s": 0.2835745375935296,
+  "gaze_dispersion": 0.05273568864567274,
+  "saccade_count": 1,
+  "fixation_count": 1,
+  "mean_saccade_duration_s": 0.13077068328857422,
+  "median_saccade_duration_s": 0.13077068328857422,
+  "mean_saccade_peak_velocity": 0.8786287322559707,
+  "mean_saccade_amplitude": -0.11489887967408702,
+  "mean_fixation_duration_s": 70.26294708251953,
+  "saccade_latencies_s": [
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+  ],
+  "intrusive_saccade_count": 0,
+  "intrusive_counts_per_interval": []
+}

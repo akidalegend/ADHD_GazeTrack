@@ -4,6 +4,7 @@ import cv2
 import dlib
 from .eye import Eye
 from .calibration import Calibration
+from .head_pose import HeadPose
 
 
 class GazeTracking(object):
@@ -18,6 +19,10 @@ class GazeTracking(object):
         self.eye_left = None
         self.eye_right = None
         self.calibration = Calibration()
+        # head pose estimator
+        self._head_pose_estimator = HeadPose()
+        self.head_pose = None
+
 
         # _face_detector is used to detect faces
         self._face_detector = dlib.get_frontal_face_detector()
@@ -49,9 +54,14 @@ class GazeTracking(object):
             self.eye_left = Eye(frame, landmarks, 0, self.calibration)
             self.eye_right = Eye(frame, landmarks, 1, self.calibration)
 
+            # estimate head pose (store results)
+            hp = self._head_pose_estimator.estimate(landmarks, self.frame)
+            self.head_pose = hp
+
         except IndexError:
             self.eye_left = None
             self.eye_right = None
+            self.head_pose = None
 
     def refresh(self, frame):
         """Refreshes the frame and analyzes it.
@@ -129,5 +139,15 @@ class GazeTracking(object):
             cv2.line(frame, (x_left, y_left - 5), (x_left, y_left + 5), color)
             cv2.line(frame, (x_right - 5, y_right), (x_right + 5, y_right), color)
             cv2.line(frame, (x_right, y_right - 5), (x_right, y_right + 5), color)
+
+        # draw head-pose axes if available
+        if self.head_pose:
+            frame = HeadPose.draw_axes(frame, self.head_pose.get('nose_point'), self.head_pose.get('axis_points'))
+
+            # optionally overlay numeric angles
+            ang = self.head_pose.get('angles', {})
+            cv2.putText(frame, f"Yaw:{ang.get('yaw',0):.1f}", (20, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,255,0), 2)
+            cv2.putText(frame, f"Pitch:{ang.get('pitch',0):.1f}", (20, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,255,0), 2)
+            cv2.putText(frame, f"Roll:{ang.get('roll',0):.1f}", (20, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,255,0), 2)
 
         return frame

@@ -161,6 +161,15 @@ frame = gaze.annotated_frame()
 
 Returns the main frame with pupils highlighted.
 
+## Experimental task runners
+
+For research experiments we provide turnkey scripts that show controlled fixation/target stimuli, record per-frame metrics, and append summary features (including `saccade_latencies_s`) into `master_metrics.csv`.
+
+- **Prosaccade**: run `python run_prosaccade_task.py --label P01` and instruct participants to look directly at the green target when it appears. The script randomizes fixation and target locations every trial, stores a raw CSV under `sessions/raw/`, and writes a JSON summary (with latency metrics) to `sessions/summaries/`.
+- **Antisaccade**: run `python run_antisaccade_task.py --label P01` and remind participants to look to the mirror-opposite side of the green target. The timing/recording pipeline matches the prosaccade task so latency distributions can be compared directly via the `saccade_latencies_s` field in summaries or `master_metrics.csv`.
+
+Both scripts accept `--trials`, `--center-duration`, `--gap-duration`, and `--target-duration` to match your paradigm. Press `q` to terminate early if needed.
+
 ## You want to help?
 
 Your suggestions, bugs reports and pull requests are welcome and appreciated. You can also starring ⭐️ the project!
