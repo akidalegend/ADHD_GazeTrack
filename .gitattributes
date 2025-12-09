@@ -1,0 +1,2 @@
+gaze_tracking/trained_models/shape_predictor_68_face_landmarks.dat filter=lfs diff=lfs merge=lfs -text
+opencv_python-4.10.0.82-cp37-abi3-macosx_11_0_arm64.whl filter=lfs diff=lfs merge=lfs -text
