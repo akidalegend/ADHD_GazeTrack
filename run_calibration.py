@@ -281,6 +281,10 @@ if __name__ == "__main__":
     
     ensure_directories(["sessions/calibration"])
     
+    print("Loading gaze tracking model...")
+    gaze_model = GazeTracking()  # Preload dlib model here
+    print("Gaze tracking model loaded successfully!")
+    
     print("Ensure the user is sitting 60cm from the screen.")
     print("Ensure lighting is consistent.")
     print("Click the start window to begin calibration or press q to cancel.")

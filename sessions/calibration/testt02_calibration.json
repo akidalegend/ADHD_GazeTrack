@@ -1,0 +1,77 @@
+{
+    "label": "testt02",
+    "timestamp": 1766694905.987603,
+    "screen_width": 1400,
+    "screen_height": 900,
+    "points": [
+        {
+            "target_x": 140,
+            "target_y": 90,
+            "gaze_h": 0.6264367816091954,
+            "gaze_v": 0.7777777777777777,
+            "samples": 53
+        },
+        {
+            "target_x": 700,
+            "target_y": 90,
+            "gaze_h": 0.6436781609195402,
+            "gaze_v": 0.8888888888888888,
+            "samples": 53
+        },
+        {
+            "target_x": 1260,
+            "target_y": 90,
+            "gaze_h": 0.5006385696040868,
+            "gaze_v": 0.8333333333333333,
+            "samples": 59
+        },
+        {
+            "target_x": 140,
+            "target_y": 450,
+            "gaze_h": 0.7815934065934066,
+            "gaze_v": 1.0,
+            "samples": 59
+        },
+        {
+            "target_x": 700,
+            "target_y": 450,
+            "gaze_h": 0.6318681318681318,
+            "gaze_v": 1.0,
+            "samples": 58
+        },
+        {
+            "target_x": 1260,
+            "target_y": 450,
+            "gaze_h": 0.5019157088122606,
+            "gaze_v": 0.9375,
+            "samples": 59
+        },
+        {
+            "target_x": 140,
+            "target_y": 810,
+            "gaze_h": 0.759065934065934,
+            "gaze_v": 1.0,
+            "samples": 58
+        },
+        {
+            "target_x": 700,
+            "target_y": 810,
+            "gaze_h": 0.6497252747252746,
+            "gaze_v": 1.0833333333333335,
+            "samples": 60
+        },
+        {
+            "target_x": 1260,
+            "target_y": 810,
+            "gaze_h": 0.5192307692307692,
+            "gaze_v": 1.0,
+            "samples": 60
+        }
+    ],
+    "model": {
+        "x_slope": -4236.797752421827,
+        "x_intercept": 3342.8921888544824,
+        "y_slope": 2805.773195876279,
+        "y_intercept": -2206.391752577309
+    }
+}
