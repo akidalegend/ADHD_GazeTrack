@@ -112,8 +112,18 @@ class Eye(object):
         self.blinking = self._blinking_ratio(landmarks, points)
         self._isolate(original_frame, landmarks, points)
 
-        if not calibration.is_complete():
-            calibration.evaluate(self.frame, side)
+        is_blink = (self.blinking is None) or (
+            hasattr(calibration, "blinking_ratio_threshold") and self.blinking > calibration.blinking_ratio_threshold
+        )
+
+        if not calibration.is_complete() and not is_blink:
+            calibration.evaluate(self.frame, side, blinking_ratio=self.blinking)
 
         threshold = calibration.threshold(side)
+
+        # If blinking/closed, skip pupil detection (reduces bad samples poisoning calibration/QC)
+        if is_blink:
+            self.pupil = None
+            return
+
         self.pupil = Pupil(self.frame, threshold)

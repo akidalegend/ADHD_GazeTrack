@@ -19,6 +19,209 @@ from gaze_tracking.saccades import (
     count_intrusive_saccades,
 )
 
+
+def _infer_task_from_path(csv_path: str) -> str | None:
+    name = os.path.basename(str(csv_path)).lower()
+    if 'antisaccade' in name:
+        return 'antisaccade'
+    if 'prosaccade' in name:
+        return 'prosaccade'
+    return None
+
+
+def _extract_target_onsets_and_expected_dirs(df):
+    """
+    Extract target-onset times and expected LEFT/RIGHT direction from the task CSV.
+
+    Expected direction is derived from stimulus_x relative to fixation_x at the target-onset row.
+    Returns list[(onset_time, expected_dir)] where expected_dir is -1 (left), +1 (right), or None.
+    """
+    required = {'t', 'stimulus_state', 'stimulus_x', 'fixation_x'}
+    if not required.issubset(set(df.columns)):
+        return []
+
+    is_target = df['stimulus_state'] == 'target'
+    transitions = is_target & (~is_target.shift(1).fillna(False))
+    if not transitions.any():
+        return []
+
+    rows = df.loc[transitions, ['t', 'stimulus_x', 'fixation_x']].copy()
+    rows['t'] = pd.to_numeric(rows['t'], errors='coerce')
+    rows['stimulus_x'] = pd.to_numeric(rows['stimulus_x'], errors='coerce')
+    rows['fixation_x'] = pd.to_numeric(rows['fixation_x'], errors='coerce')
+
+    out = []
+    for _, r in rows.iterrows():
+        onset_t = float(r['t']) if pd.notna(r['t']) else None
+        if onset_t is None:
+            continue
+        expected = None
+        if pd.notna(r['stimulus_x']) and pd.notna(r['fixation_x']):
+            dx = float(r['stimulus_x']) - float(r['fixation_x'])
+            if abs(dx) >= 1e-6:
+                expected = 1 if dx > 0 else -1
+        out.append((onset_t, expected))
+    return out
+
+
+def _select_direction_signal(df):
+    """Return (times, pos) for direction/latency analysis.
+
+    We prefer the raw `g_horizontal` ratio because it is monotonic with horizontal gaze and
+    does not depend on screen calibration. We convert it to a signed signal where
+    RIGHT is positive and LEFT is negative.
+
+    Note: In this codebase, `g_horizontal` is clamped to [0,1] and tends to be smaller
+    when looking right and larger when looking left (see gaze_tracking_mediapipe.py).
+    """
+    if 't' not in df.columns or 'g_horizontal' not in df.columns:
+        return None
+
+    times = pd.to_numeric(df['t'], errors='coerce').to_numpy(dtype=float)
+    gh = pd.to_numeric(df['g_horizontal'], errors='coerce').to_numpy(dtype=float)
+
+    # Convert to signed: right positive, left negative
+    pos = 0.5 - gh
+    return times, pos
+
+
+def _first_saccade_after(saccades, onset_t: float, max_latency: float):
+    if not saccades:
+        return None
+    for s in saccades:
+        if s['onset_t'] >= onset_t and (s['onset_t'] - onset_t) <= max_latency:
+            return s
+    return None
+
+
+def compute_reaction_direction_metrics(
+    *,
+    csv_path: str,
+    df,
+    vel_thresh: float,
+    min_dur: float,
+    smooth_w: int,
+    latency_window: float,
+    amp_thresh: float = 0.03,
+    correction_window: float = 0.6,
+):
+    """Compute trial-level timing+direction metrics for pro/anti-saccade tasks.
+
+    This intentionally prioritizes *timing* and *direction* over absolute gaze coordinates.
+
+    - Timing: latency from target onset to first detected saccade onset.
+    - Direction: sign of the first saccade amplitude in the signed horizontal signal.
+    - Correctness: depends on task type inferred from filename.
+    """
+
+    task = _infer_task_from_path(csv_path)
+    if task not in ('prosaccade', 'antisaccade'):
+        return {}
+
+    onset_and_dirs = _extract_target_onsets_and_expected_dirs(df)
+    if not onset_and_dirs:
+        return {}
+
+    selected = _select_direction_signal(df)
+    if selected is None:
+        return {}
+    times, pos = selected
+
+    # Detect saccades in the signed ratio signal.
+    # Threshold defaults are in "ratio units per second"; you will likely tune vel_thresh per camera FPS.
+    saccades = detect_saccades(times, pos, vel_thresh=vel_thresh, min_dur=min_dur, smooth_w=smooth_w)
+
+    trial_latencies = []
+    trial_expected_dirs = []
+    trial_observed_dirs = []
+    trial_is_correct = []
+    trial_is_error_toward_target = []
+    trial_has_correction = []
+
+    for onset_t, expected_dir in onset_and_dirs:
+        s = _first_saccade_after(saccades, onset_t, latency_window)
+        if s is None or expected_dir is None:
+            trial_latencies.append(None)
+            trial_expected_dirs.append(expected_dir)
+            trial_observed_dirs.append(None)
+            trial_is_correct.append(None)
+            trial_is_error_toward_target.append(None)
+            trial_has_correction.append(None)
+            continue
+
+        latency = float(s['onset_t'] - onset_t)
+        amp = float(s.get('amplitude', 0.0))
+        obs_dir = None
+        if abs(amp) >= float(amp_thresh):
+            obs_dir = 1 if amp > 0 else -1
+
+        trial_latencies.append(latency if math.isfinite(latency) else None)
+        trial_expected_dirs.append(int(expected_dir))
+        trial_observed_dirs.append(obs_dir)
+
+        if obs_dir is None:
+            trial_is_correct.append(None)
+            trial_is_error_toward_target.append(None)
+            trial_has_correction.append(None)
+            continue
+
+        if task == 'prosaccade':
+            correct = (obs_dir == expected_dir)
+            error_toward = (obs_dir != expected_dir)
+        else:  # antisaccade
+            correct = (obs_dir == -expected_dir)
+            error_toward = (obs_dir == expected_dir)
+
+        trial_is_correct.append(bool(correct))
+        trial_is_error_toward_target.append(bool(error_toward))
+
+        # Correction: after an antisaccade "toward" error, do we see a subsequent saccade
+        # in the opposite direction shortly after?
+        if task == 'antisaccade' and error_toward:
+            corr = False
+            window_end = float(s['onset_t']) + float(correction_window)
+            for s2 in saccades:
+                if s2['onset_t'] <= s['onset_t']:
+                    continue
+                if s2['onset_t'] > window_end:
+                    break
+                amp2 = float(s2.get('amplitude', 0.0))
+                if abs(amp2) < float(amp_thresh):
+                    continue
+                obs2 = 1 if amp2 > 0 else -1
+                if obs2 == -expected_dir:
+                    corr = True
+                    break
+            trial_has_correction.append(bool(corr))
+        else:
+            trial_has_correction.append(None)
+
+    # Aggregate (ignore None)
+    valid_correct_flags = [v for v in trial_is_correct if isinstance(v, bool)]
+    valid_latencies = [v for v in trial_latencies if isinstance(v, (int, float))]
+    accuracy = float(np.mean(valid_correct_flags)) if valid_correct_flags else None
+    median_latency = float(np.median(valid_latencies)) if valid_latencies else None
+    mean_latency = float(np.mean(valid_latencies)) if valid_latencies else None
+
+    antisaccade_error_flags = [v for v in trial_is_error_toward_target if isinstance(v, bool)]
+    antisaccade_error_rate = float(np.mean(antisaccade_error_flags)) if (task == 'antisaccade' and antisaccade_error_flags) else None
+    correction_flags = [v for v in trial_has_correction if isinstance(v, bool)]
+    correction_rate = float(np.mean(correction_flags)) if (task == 'antisaccade' and correction_flags) else None
+
+    return {
+        'task_inferred': task,
+        'trial_latency_s': trial_latencies,
+        'trial_expected_dir': trial_expected_dirs,
+        'trial_observed_dir': trial_observed_dirs,
+        'trial_correct': trial_is_correct,
+        'direction_accuracy': accuracy,
+        'latency_median_s': median_latency,
+        'latency_mean_s': mean_latency,
+        'antisaccade_error_rate': antisaccade_error_rate,
+        'antisaccade_correction_rate': correction_rate,
+        'direction_amp_thresh': float(amp_thresh),
+    }
+
 def load_calibration_model(label, calibration_dir="sessions/calibration"):
     """
     Tries to load a calibration JSON for the given label.
@@ -53,9 +256,71 @@ def load_csv(path):
     df = pd.read_csv(path)
     # ensure sorted by time
     df = df.sort_values('t').reset_index(drop=True)
-    # fill missing values to avoid breaks in continuous signals
-    df = df.ffill().fillna(0)
+    # keep continuity without injecting fake zeros
+    df = df.ffill().bfill()
     return df
+
+def _load_csv_raw(path):
+    """Raw CSV load (preserve NaNs/empty cells) for QC computations."""
+    df = pd.read_csv(path)
+    df = df.sort_values('t').reset_index(drop=True)
+    return df
+
+def _qc_metrics_and_flag(raw_df):
+    """
+    Compute QC metrics from raw per-frame CSV.
+    Returns (qc_metrics_dict, qc_flag_str, qc_reasons_list).
+    """
+    qc = {}
+    reasons = []
+
+    if raw_df is None or raw_df.empty or 't' not in raw_df.columns:
+        return {'qc_valid': False}, 'invalid', ['empty_or_missing_t']
+
+    times = pd.to_numeric(raw_df['t'], errors='coerce').to_numpy(dtype=float)
+    duration = float(np.nanmax(times) - np.nanmin(times)) if np.isfinite(times).any() else 0.0
+    qc['qc_valid'] = True
+    qc['qc_duration_s'] = duration
+
+    if 'is_blinking' in raw_df.columns:
+        blink = pd.to_numeric(raw_df['is_blinking'], errors='coerce').fillna(0).to_numpy(dtype=float)
+        blink_frames = int(np.nansum(blink > 0))
+        total_frames = int(np.sum(np.isfinite(times)))
+        qc['qc_blink_fraction'] = float(blink_frames / max(1, total_frames))
+    else:
+        qc['qc_blink_fraction'] = None
+
+    # "Pupil detection" proxy: gaze ratios present (not NaN)
+    if 'g_horizontal' in raw_df.columns and 'g_vertical' in raw_df.columns:
+        gh = pd.to_numeric(raw_df['g_horizontal'], errors='coerce')
+        gv = pd.to_numeric(raw_df['g_vertical'], errors='coerce')
+        valid = (gh.notna() & gv.notna())
+        qc['qc_pupil_detection_rate'] = float(valid.mean()) if len(valid) else 0.0
+    else:
+        qc['qc_pupil_detection_rate'] = None
+
+    # Calibrated gaze availability (from task runners)
+    if 'smooth_gaze_x' in raw_df.columns:
+        sx = pd.to_numeric(raw_df['smooth_gaze_x'], errors='coerce')
+        qc['qc_smooth_gaze_rate'] = float(sx.notna().mean()) if len(sx) else 0.0
+    else:
+        qc['qc_smooth_gaze_rate'] = None
+
+    # Simple flagging rules (tune as needed)
+    flag = 'ok'
+    pdr = qc.get('qc_pupil_detection_rate')
+    if isinstance(pdr, float) and pdr < 0.6:
+        reasons.append('poor_pupil_detection_rate')
+    bf = qc.get('qc_blink_fraction')
+    if isinstance(bf, float) and bf > 0.35:
+        reasons.append('excessive_blink_fraction')
+    if duration > 0 and duration < 3.0:
+        reasons.append('too_short_duration')
+
+    if reasons:
+        flag = 'review' if 'too_short_duration' not in reasons else 'invalid'
+
+    return qc, flag, reasons
 
 def angle_path_length(df):
     cols = ['yaw', 'pitch', 'roll']
@@ -110,29 +375,39 @@ def compute_features(csv_path, spike_threshold=30.0, motion_threshold=5.0, df=No
 
 def _select_gaze_series(df, label="Unknown", vel_thresh=0.8):
     """
-    Selects the best gaze signal (calibrated pixels or raw ratio).
+    Selects the best gaze signal (recorded smooth/est pixels, calibrated pixels, or raw ratio).
     Returns (times, signal, adjusted_vel_thresh, is_calibrated)
     """
     times = pd.to_numeric(df['t'], errors='coerce').to_numpy(dtype=float)
-    
-    # 1. Try Calibration
+
+    # 0) Prefer task-runner recorded (already calibrated + filtered) if present
+    for col in ('smooth_gaze_x', 'est_gaze_x'):
+        if col in df.columns:
+            series = pd.to_numeric(df[col], errors='coerce')
+            if series.notna().sum() > 0:
+                signal = series.to_numpy(dtype=float)
+                is_calibrated = True
+                if vel_thresh < 10.0:
+                    adjusted_thresh = 200.0
+                else:
+                    adjusted_thresh = vel_thresh
+                return times, signal, adjusted_thresh, is_calibrated
+
+    # 1) Try Calibration (recompute from ratios if model exists)
     model = load_calibration_model(label)
     is_calibrated = apply_calibration(df, model)
-    
+
     if is_calibrated:
         print(f"Applied calibration model for {label}.")
         signal = df['gaze_x_px'].to_numpy()
-        
-        # Auto-scale threshold for pixels
-        # If user passed a small ratio-like threshold (e.g. 0.8), scale it up
+
         if vel_thresh < 10.0:
-            adjusted_thresh = 200.0 # Conservative pixel velocity threshold (lowered from 1000 to catch slower webcams)
+            adjusted_thresh = 200.0
             print(f"  -> Auto-scaling velocity threshold to {adjusted_thresh} px/s")
         else:
             adjusted_thresh = vel_thresh
     else:
         print(f"No calibration found for {label}. Using raw ratios.")
-        # Fallback to raw columns
         candidate_cols = ['g_horizontal', 'left_px', 'right_px']
         signal = None
         for col in candidate_cols:
@@ -244,8 +519,9 @@ def compute_summary(
     interval_windows=None,
     latency_window=1.0,
 ):
+    raw_df = _load_csv_raw(csv_path)
     df = load_csv(csv_path)
-    
+
     # Fallback: Extract stimuli times from CSV if not provided
     if not stimuli_times:
         stimuli_times = extract_stimuli_from_csv(df)
@@ -270,6 +546,26 @@ def compute_summary(
         latency_window=latency_window,
     )
     combined.update(saccade_metrics)
+
+    # Task-specific: prioritize timing + direction (based on g_horizontal) when stimulus geometry is available.
+    try:
+        reaction_dir_metrics = compute_reaction_direction_metrics(
+            csv_path=str(csv_path),
+            df=df,
+            vel_thresh=vel_thresh,
+            min_dur=min_dur,
+            smooth_w=smooth_w,
+            latency_window=latency_window,
+        )
+        combined.update(reaction_dir_metrics)
+    except Exception as e:  # pragma: no cover - analytics should not break summary
+        combined['reaction_direction_error'] = str(e)
+
+    qc, qc_flag, qc_reasons = _qc_metrics_and_flag(raw_df)
+    combined.update(qc)
+    combined['qc_flag'] = qc_flag
+    combined['qc_reasons'] = qc_reasons
+
     return _clean_numeric(combined)
 
 

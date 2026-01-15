@@ -10,13 +10,13 @@ import time
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import cv2  # type: ignore[attr-defined]
 import numpy as np
 
 from analysis import compute_summary
-from gaze_tracking import GazeTracking
+from gaze_tracking import GazeTrackingMediaPipe as GazeTracking
 from task_utils import append_master_row, ensure_dir, prompt_label
 
 
@@ -34,6 +34,27 @@ def safe_angle(head_pose, key: str) -> float:
         return float(head_pose['angles'].get(key))
     except (KeyError, TypeError, AttributeError):  # pragma: no cover - guardrail
         return float('nan')
+
+
+def _load_calibration_model(label: str) -> Optional[Dict[str, float]]:
+    """Load calibration model for given label. Returns None if not found or invalid."""
+    calib_path = Path('sessions/calibration') / f'{label}_calibration.json'
+    if not calib_path.exists():
+        print(f"No calibration found for '{label}' at {calib_path}. Running without calibration.")
+        return None
+    try:
+        with calib_path.open('r', encoding='utf-8') as f:
+            data = json.load(f)
+        model = data.get('model')
+        if model and all(k in model for k in ['x_slope', 'x_intercept', 'y_slope', 'y_intercept']):
+            print(f"Loaded calibration model from {calib_path}")
+            return model
+        else:
+            print(f"Invalid calibration model in {calib_path}. Running without calibration.")
+            return None
+    except (json.JSONDecodeError, OSError) as e:
+        print(f"Failed to load calibration from {calib_path}: {e}. Running without calibration.")
+        return None
 
 
 def _stimulus_image(
@@ -107,7 +128,7 @@ def _wait_for_click(window_name: str, size: int, text: str = 'Click to start') -
         key = cv2.waitKey(10) & 0xFF
         if clicked:
             return True
-        if key == ord('q'):
+        if key in (ord('q'), 27):  # q or ESC
             return False
 
 
@@ -144,7 +165,7 @@ def _run_countdown(cap: cv2.VideoCapture, stimulus_size: int, duration: int = 5)
             cv2.putText(frame, overlay_text, (50, h // 2), font, 1.5, (0, 255, 255), 3)
             cv2.imshow('Antisaccade Capture', frame)
 
-        if cv2.waitKey(1) & 0xFF == ord('q'):
+        if cv2.waitKey(1) & 0xFF in (ord('q'), 27):  # q or ESC
             return False
     
     return True
@@ -170,14 +191,28 @@ def run_trials(
     raw_dir = ensure_dir(raw_dir)
     raw_path = raw_dir / f'{slug}_{timestamp:%Y%m%d_%H%M%S}.csv'
 
+    # Load calibration model (if available)
+    calib_model = _load_calibration_model(label)
+
+    # One-Euro filters for calibrated gaze (pixels)
+    x_filt = OneEuroFilter(min_cutoff=1.0, beta=0.02, d_cutoff=1.0)
+    y_filt = OneEuroFilter(min_cutoff=1.0, beta=0.02, d_cutoff=1.0)
+
     gaze = GazeTracking()
     cap = cv2.VideoCapture(0)
     if not cap.isOpened():
         raise RuntimeError('Unable to access camera. Ensure it is connected and free.')
 
+    _configure_camera(cap, width=640, height=480, fps=30)
+    warmup_rate = _pupil_detection_check(gaze, cap, samples=40)
+    qc_flag = "ok" if warmup_rate >= 0.6 else "poor_pupil_detection"
+
     cv2.namedWindow('Antisaccade Stimulus', cv2.WINDOW_NORMAL)
     cv2.resizeWindow('Antisaccade Stimulus', stimulus_size, stimulus_size)
+    cv2.setWindowProperty('Antisaccade Stimulus', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+
     cv2.namedWindow('Antisaccade Capture', cv2.WINDOW_NORMAL)
+    cv2.setWindowProperty('Antisaccade Capture', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
     # Wait for explicit click before starting countdown/trials
     if not _wait_for_click('Antisaccade Stimulus', stimulus_size):
@@ -207,8 +242,9 @@ def run_trials(
         writer = csv.writer(handle)
         writer.writerow([
             't', 'yaw', 'pitch', 'roll',
-            'g_horizontal', 'is_blinking',
+            'g_horizontal', 'g_vertical', 'is_blinking',
             'left_px', 'left_py', 'right_px', 'right_py',
+            'est_gaze_x', 'est_gaze_y', 'smooth_gaze_x', 'smooth_gaze_y',
             'trial_index', 'stimulus_state', 'stimulus_angle_deg',
             'stimulus_x', 'stimulus_y', 'fixation_x', 'fixation_y'
         ])
@@ -256,14 +292,25 @@ def run_trials(
             pitch = safe_angle(hp, 'pitch')
             roll = safe_angle(hp, 'roll')
             g_h = gaze.horizontal_ratio() if gaze.pupils_located else float('nan')
+            g_v = gaze.vertical_ratio() if gaze.pupils_located else float('nan')
             blink = bool(gaze.is_blinking()) if gaze.pupils_located else False
             lp = gaze.pupil_left_coords() or (float('nan'), float('nan'))
             rp = gaze.pupil_right_coords() or (float('nan'), float('nan'))
 
+            # Apply calibration mapping and smoothing if model is available
+            est_x = est_y = smooth_x = smooth_y = float('nan')
+            if calib_model and gaze.pupils_located and g_h is not None and g_v is not None:
+                if not math.isnan(g_h) and not math.isnan(g_v):
+                    est_x = calib_model['x_slope'] * g_h + calib_model['x_intercept']
+                    est_y = calib_model['y_slope'] * g_v + calib_model['y_intercept']
+                    smooth_x = x_filt.update(now, est_x)
+                    smooth_y = y_filt.update(now, est_y)
+
             writer.writerow([
                 now, yaw, pitch, roll,
-                g_h, int(blink),
+                g_h, g_v, int(blink),
                 lp[0], lp[1], rp[0], rp[1],
+                est_x, est_y, smooth_x, smooth_y,
                 trial_idx, state,
                 current_angle_deg if current_angle_deg is not None else '',
                 current_target_center[0] if current_target_center else '',
@@ -283,7 +330,7 @@ def run_trials(
             cv2.imshow('Antisaccade Stimulus', stim_img)
             annotated = gaze.annotated_frame()
             cv2.imshow('Antisaccade Capture', annotated)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
+            if cv2.waitKey(1) & 0xFF in (ord('q'), 27):  # q or ESC
                 break
 
     cap.release()
@@ -320,6 +367,8 @@ def run_trials(
             }
             for event in events
         ],
+        'qc_pupil_warmup_rate': warmup_rate,
+        'qc_flag': qc_flag,
     }
     summary_with_meta = {**metadata, **summary}
 
@@ -354,6 +403,10 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     label = prompt_label(args.label)
+    print("\nAntisaccade task instructions:")
+    print("- Two windows open fullscreen: Stimulus (targets) and Capture (camera).")
+    print("- Click the Stimulus window to start; q/Esc cancels.")
+    print("- During trials: look opposite the green target; press q/Esc anytime to stop.\n")
     raw_path = run_trials(
         label=label,
         trials=args.trials,
@@ -374,5 +427,52 @@ def main() -> None:
     )
 
 
-if __name__ == '__main__':
-    main()
+# --- One Euro filter (for calibrated gaze smoothing) ---
+class _LowPass:
+    def __init__(self) -> None:
+        self._y: float | None = None
+
+    def reset(self) -> None:
+        self._y = None
+
+    def apply(self, x: float, a: float) -> float:
+        if self._y is None:
+            self._y = x
+        else:
+            self._y = a * x + (1.0 - a) * self._y
+        return self._y
+
+
+class OneEuroFilter:
+    def __init__(self, *, min_cutoff: float = 1.0, beta: float = 0.01, d_cutoff: float = 1.0) -> None:
+        self.min_cutoff = float(min_cutoff)
+        self.beta = float(beta)
+        self.d_cutoff = float(d_cutoff)
+        self._t_prev: float | None = None
+        self._x_prev: float | None = None
+        self._dx = _LowPass()
+        self._x = _LowPass()
+
+    @staticmethod
+    def _alpha(cutoff: float, dt: float) -> float:
+        if dt <= 0:
+            return 1.0
+        r = 2.0 * math.pi * float(cutoff) * dt
+        return r / (r + 1.0)
+
+    def reset(self) -> None:
+        self._t_prev = None
+        self._x_prev = None
+        self._dx.reset()
+        self._x.reset()
+
+    def update(self, t: float, x: float) -> float:
+        if self._t_prev is None or self._x_prev is None:
+            self._t_prev = float(t)
+            self._x_prev = float(x)
+            return self._x.apply(float(x), 1.0)
+
+        dt = float(t) - float(self._t_prev)
+        self._t_prev = float(t)
+
+        dx = (float(x) - float(self._x_prev)) / dt if dt > 0

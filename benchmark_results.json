@@ -1,0 +1,19 @@
+{
+  "MediaPipe": {
+    "implementation": "MediaPipe",
+    "duration_s": 30.510890245437622,
+    "frames_processed": 901,
+    "fps": 29.530439549686,
+    "pupil_detection_rate": 1.0,
+    "head_pose_estimation_rate": 1.0,
+    "latency_ms": {
+      "mean": 3.331695095151167,
+      "median": 3.000974655151367,
+      "std": 0.5025496656915353,
+      "min": 2.506732940673828,
+      "max": 5.052089691162109,
+      "p95": 4.002809524536133,
+      "p99": 4.993438720703125
+    }
+  }
+}

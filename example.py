@@ -4,10 +4,14 @@ Check the README.md for complete documentation.
 """
 
 import cv2
-from gaze_tracking import GazeTracking
+from gaze_tracking import GazeTrackingMediaPipe as GazeTracking
 
 gaze = GazeTracking()
 webcam = cv2.VideoCapture(0)
+
+# Fullscreen display window
+cv2.namedWindow("Demo", cv2.WINDOW_NORMAL)
+cv2.setWindowProperty("Demo", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
 while True:
     # We get a new frame from the webcam
@@ -37,7 +41,8 @@ while True:
 
     cv2.imshow("Demo", frame)
 
-    if cv2.waitKey(1) == 27:
+    key = cv2.waitKey(1) & 0xFF
+    if key == 27 or key == ord('q'):
         break
    
 webcam.release()

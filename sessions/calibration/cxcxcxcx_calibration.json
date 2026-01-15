@@ -1,0 +1,77 @@
+{
+    "label": "cxcxcxcx",
+    "timestamp": 1766706657.5652852,
+    "screen_width": 1400,
+    "screen_height": 900,
+    "points": [
+        {
+            "target_x": 140,
+            "target_y": 90,
+            "gaze_h": 0.8037652800583835,
+            "gaze_v": 0.7333333333333334,
+            "samples": 50
+        },
+        {
+            "target_x": 700,
+            "target_y": 90,
+            "gaze_h": 0.6547619047619048,
+            "gaze_v": 0.7136363636363636,
+            "samples": 60
+        },
+        {
+            "target_x": 1260,
+            "target_y": 90,
+            "gaze_h": 0.5092592592592593,
+            "gaze_v": 0.7944444444444444,
+            "samples": 61
+        },
+        {
+            "target_x": 140,
+            "target_y": 450,
+            "gaze_h": 0.8002645502645502,
+            "gaze_v": 0.8333333333333333,
+            "samples": 61
+        },
+        {
+            "target_x": 700,
+            "target_y": 450,
+            "gaze_h": 0.6481481481481481,
+            "gaze_v": 0.9375,
+            "samples": 60
+        },
+        {
+            "target_x": 1260,
+            "target_y": 450,
+            "gaze_h": 0.5207407407407407,
+            "gaze_v": 0.9375,
+            "samples": 61
+        },
+        {
+            "target_x": 140,
+            "target_y": 810,
+            "gaze_h": 0.754985754985755,
+            "gaze_v": 0.9285714285714286,
+            "samples": 59
+        },
+        {
+            "target_x": 700,
+            "target_y": 810,
+            "gaze_h": 0.6346153846153846,
+            "gaze_v": 1.0833333333333335,
+            "samples": 62
+        },
+        {
+            "target_x": 1260,
+            "target_y": 810,
+            "gaze_h": 0.5284900284900285,
+            "gaze_v": 1.0,
+            "samples": 62
+        }
+    ],
+    "model": {
+        "x_slope": -4120.891117152654,
+        "x_intercept": 3380.882827783853,
+        "y_slope": 2251.2716941348835,
+        "y_intercept": -1541.5380354356514
+    }
+}

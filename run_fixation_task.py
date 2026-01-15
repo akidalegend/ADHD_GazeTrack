@@ -16,7 +16,7 @@ try:
 except ImportError as exc:  # pragma: no cover
     raise ImportError('pandas is required for run_fixation_task.py. Install it via "pip install pandas".') from exc
 
-from analysis import compute_summary
+from analysis import compute_summary, load_calibration_model
 from collect_data import main as collect_main
 from task_utils import append_master_row, ensure_dir, prompt_label
 
@@ -31,6 +31,9 @@ def _read_time_bounds(csv_path: Path) -> Tuple[float, float]:
 def _run_countdown(duration=5):
     """Opens camera briefly to show countdown before main task starts."""
     cap = cv2.VideoCapture(0)
+    if not cap.isOpened():
+        print("Error: Unable to access camera.")
+        return False
     window_name = "Get Ready"
     cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
     
@@ -49,7 +52,7 @@ def _run_countdown(duration=5):
                     cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 3)
         cv2.imshow(window_name, frame)
         
-        if cv2.waitKey(1) & 0xFF == ord('q'):
+        if cv2.waitKey(1) & 0xFF in (ord('q'), 27):  # q or ESC
             cap.release()
             cv2.destroyAllWindows()
             return False
@@ -85,7 +88,7 @@ def _wait_for_click(window_name: str = "Fixation Start", width: int = 500, heigh
         if clicked:
             cv2.destroyWindow(window_name)
             return True
-        if key == ord('q'):
+        if key in (ord('q'), 27):  # q or ESC
             cv2.destroyWindow(window_name)
             return False
 
@@ -116,12 +119,17 @@ def run_fixation_task(
         return raw_path
     # -----------------------------
 
+    # Try to load calibration model for this label if provided
+    calib_model = load_calibration_model(label) if label else None
+
     collect_main(
         str(raw_path),
         duration,
         show_dot=show_dot,
         dot_size=dot_size,
         dot_radius=dot_radius,
+        calib_model=calib_model,
+        label=label,
     )
 
     if not raw_path.exists():
