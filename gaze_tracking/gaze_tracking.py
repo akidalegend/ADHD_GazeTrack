@@ -45,7 +45,7 @@ class GazeTracking(object):
             return False
 
     def _analyze(self):
-        """Detects the face and initialize Eye objects"""
+        """Detects the face and initialize Eye object"""
         frame = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
         faces = self._face_detector(frame)
 
